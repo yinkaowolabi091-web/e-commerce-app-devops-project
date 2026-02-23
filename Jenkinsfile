@@ -70,10 +70,7 @@ pipeline {
         stage('Security Scan with Trivy') {
             steps {
                 script {
-                    sh """
-                    trivy image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-                    trivy image ${DOCKER_MIGRATION_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-                    """
+                   trivy_scan()
                 }
             }
         }
