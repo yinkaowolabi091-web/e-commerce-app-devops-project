@@ -12,15 +12,14 @@ pipeline {
         GIT_BRANCH = "master"
     }
     
-    stage('Security Scan with Trivy') {
-    steps {
-        script {
-            sh """
-            trivy image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-            """
+    stages {
+        stage('Cleanup Workspace') {
+            steps {
+                script {
+                    clean_ws()
+                }
+            }
         }
-    }
-}
         
         stage('Clone Repository') {
             steps {
@@ -71,10 +70,10 @@ pipeline {
         stage('Security Scan with Trivy') {
             steps {
                 script {
-                    // Create directory for results
-                  
-                    trivy_scan()
-                    
+                    sh """
+                    trivy image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+                    trivy image ${DOCKER_MIGRATION_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+                    """
                 }
             }
         }
@@ -107,7 +106,6 @@ pipeline {
             }
         }
         
-        // Add this new stage
         stage('Update Kubernetes Manifests') {
             steps {
                 script {
