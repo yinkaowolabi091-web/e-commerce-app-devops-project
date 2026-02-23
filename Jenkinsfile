@@ -12,14 +12,15 @@ pipeline {
         GIT_BRANCH = "master"
     }
     
-    stages {
-        stage('Cleanup Workspace') {
-            steps {
-                script {
-                    clean_ws()
-                }
-            }
+    stage('Security Scan with Trivy') {
+    steps {
+        script {
+            sh """
+            trivy image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+            """
         }
+    }
+}
         
         stage('Clone Repository') {
             steps {
