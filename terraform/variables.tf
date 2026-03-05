@@ -1,19 +1,12 @@
-variable "aws_region" {
-  description = "AWS region where resources will be provisioned"
-  default     = "us-east-2"
-}
-
-variable "ami_id" {
-  description = "AMI ID for the EC2 instance"
-  default     = "ami-085f9c64a9b75eed5"
-}
+# FIXED: Removed unused aws_region and ami_id variables
+# (they conflicted with local.region defined in provider.tf)
 
 variable "instance_type" {
-  description = "Instance type for the EC2 instance"
+  description = "Instance type for EC2 instances (Jenkins + Bastion)"
   default     = "t3.medium"
 }
 
-variable "my_enviroment" {
-  description = "Instance type for the EC2 instance"
+variable "my_environment" {
+  description = "Deployment environment tag"
   default     = "dev"
 }

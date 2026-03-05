@@ -1,24 +1,29 @@
 resource "aws_security_group" "node_group_remote_access" {
-  name   = "allow HTTP"
+  name   = "eks-node-remote-access-sg"
   vpc_id = module.vpc.vpc_id
+
   ingress {
-    description = "port 22 allow"
+    description = "SSH access to EKS nodes"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
   egress {
-    description = " allow all outgoing traffic "
+    description = "Allow all outgoing traffic"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name = "eks-node-remote-access-sg"
+  }
 }
 
 module "eks" {
-
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 20.0"
 
@@ -27,14 +32,14 @@ module "eks" {
   cluster_endpoint_public_access  = false
   cluster_endpoint_private_access = true
 
-  //access entry for any specific user or role (jenkins controller instance)
+  # FIXED: Replaced original repo owner account ID 876997124628
+  # with YOUR account ID 584164023721
   access_entries = {
-    # One access entry with a policy associated
-    example = {
-      principal_arn = "arn:aws:iam::876997124628:user/terraform"
+    terraform_user = {
+      principal_arn = "arn:aws:iam::584164023721:user/terraform"
 
       policy_associations = {
-        example = {
+        admin_policy = {
           policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
           access_scope = {
             type = "cluster"
@@ -44,18 +49,17 @@ module "eks" {
     }
   }
 
-
   cluster_security_group_additional_rules = {
-    access_for_bastion_jenkins_hosts = {
-      cidr_blocks = ["0.0.0.0/0"]
-      description = "Allow all HTTPS traffic from jenkins and Bastion host"
+    access_for_jenkins_and_bastion = {
+      # FIXED: scoped to VPC CIDR only instead of 0.0.0.0/0
+      cidr_blocks = ["10.0.0.0/16"]
+      description = "Allow HTTPS from Jenkins and Bastion within VPC"
       from_port   = 443
       to_port     = 443
       protocol    = "tcp"
       type        = "ingress"
     }
   }
-
 
   cluster_addons = {
     coredns = {
@@ -73,20 +77,12 @@ module "eks" {
   subnet_ids               = module.vpc.private_subnets
   control_plane_subnet_ids = module.vpc.private_subnets
 
-  # EKS Managed Node Group(s)
-
   eks_managed_node_group_defaults = {
-
-    instance_types = ["t3.large"]
-
+    instance_types                        = ["t3.large"]
     attach_cluster_primary_security_group = true
-
   }
 
-
-
   eks_managed_node_groups = {
-
     tws-demo-ng = {
       min_size     = 1
       max_size     = 3
@@ -96,10 +92,10 @@ module "eks" {
       capacity_type  = "SPOT"
 
       disk_size                  = 35
-      use_custom_launch_template = false # Important to apply disk size!
+      use_custom_launch_template = false
 
       remote_access = {
-        ec2_ssh_key               = resource.aws_key_pair.deployer.key_name
+        ec2_ssh_key               = aws_key_pair.deployer.key_name
         source_security_group_ids = [aws_security_group.node_group_remote_access.id]
       }
 
@@ -111,9 +107,8 @@ module "eks" {
     }
   }
 
+  # FIXED: local.tags now properly defined in provider.tf
   tags = local.tags
-
-
 }
 
 data "aws_instances" "eks_nodes" {

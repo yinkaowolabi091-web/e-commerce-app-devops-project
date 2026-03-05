@@ -1,5 +1,4 @@
 locals {
-
   region          = "eu-west-1"
   name            = "tws-eks-cluster"
   vpc_cidr        = "10.0.0.0/16"
@@ -7,14 +6,13 @@ locals {
   public_subnets  = ["10.0.1.0/24", "10.0.2.0/24"]
   private_subnets = ["10.0.3.0/24", "10.0.4.0/24"]
 
+  # FIXED: properly defined so eks.tf can reference local.tags
   tags = {
-    example = local.name
+    Project     = local.name
+    Environment = "dev"
   }
-
 }
 
 provider "aws" {
-
   region = local.region
-
 }

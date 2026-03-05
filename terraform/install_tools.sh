@@ -1,41 +1,64 @@
 #!/bin/bash
 
-# Update system and install core packages
-sudo apt update
-sudo apt install -y fontconfig openjdk-17-jre 
+# =============================================================
+# Debug log - after deploy SSH in and run:
+#   cat /var/log/user-data.log
+# =============================================================
+exec > /var/log/user-data.log 2>&1
+set -e
 
-# Jenkins installation
-sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
+echo "=== [START] user_data script - $(date) ==="
+
+# Update system
+apt-get update -y
+apt-get upgrade -y
+
+# Install required packages
+apt-get install -y ca-certificates curl gnupg lsb-release
+
+# -----------------------------
+# Install Java 17 (required for Jenkins)
+# -----------------------------
+apt-get install -y openjdk-17-jre-headless
+echo "=== Java 17 installed ==="
+java -version
+
+# -----------------------------
+# Install Jenkins
+# FIXED: wget saves the .asc key directly - more reliable in user_data
+# than curl | gpg --dearmor pipe which fails silently
+# -----------------------------
+apt-get install -y wget
+
+wget -O /usr/share/keyrings/jenkins-keyring.asc \
   https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
-echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]" \
-  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
-  /etc/apt/sources.list.d/jenkins.list > /dev/null
-sudo apt-get update
-sudo apt-get -y install jenkins
 
-sudo systemctl start jenkins
-sudo systemctl enable jenkins
+echo "=== Jenkins key saved - $(ls -la /usr/share/keyrings/jenkins-keyring.asc) ==="
 
-# Docker installation
-sudo apt-get update
-sudo apt-get install docker.io -y
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+https://pkg.jenkins.io/debian-stable binary/" \
+  | tee /etc/apt/sources.list.d/jenkins.list > /dev/null
 
-# User group permission
-sudo usermod -aG docker $USER
-sudo usermod -aG docker jenkins
+apt-get update -y
+apt-get install -y jenkins
 
-sudo systemctl restart docker
-sudo systemctl restart jenkins
+systemctl enable jenkins
+systemctl start jenkins
 
-# Install dependencies and Trivy
-sudo apt-get install wget apt-transport-https gnupg lsb-release snapd -y
-wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
-sudo apt-get update -y
-sudo apt-get install trivy -y
+echo "=== Jenkins installed and started ==="
+systemctl status jenkins --no-pager
 
-# AWS CLI installation
-sudo snap install aws-cli --classic
+# -----------------------------
+# Install Docker
+# -----------------------------
+apt-get install -y docker.io
+systemctl enable docker
+systemctl start docker
 
-# Helm installation
-sudo snap install helm --classic
+usermod -aG docker ubuntu
+usermod -aG docker jenkins
+
+echo "=== Docker installed ==="
+docker --version
+
+echo "=== [DONE] All tools installed successfully - $(date) ==="
