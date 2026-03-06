@@ -5,8 +5,8 @@ pipeline {
     
     environment {
         // Update the main app image name to match the deployment file
-        DOCKER_IMAGE_NAME = 'laxg66/easyshop-app'
-        DOCKER_MIGRATION_IMAGE_NAME = 'laxg66/easyshop-migration'
+        DOCKER_IMAGE_NAME = 'dreedsir12/easyshop-app'
+        DOCKER_MIGRATION_IMAGE_NAME = 'dreedsir12/easyshop-migration'
         DOCKER_IMAGE_TAG = "${BUILD_NUMBER}"
         GITHUB_CREDENTIALS = credentials('github-credentials')
         GIT_BRANCH = "master"
@@ -24,7 +24,7 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 script {
-                    clone("https://github.com/lax66/tws-e-commerce-app_hackathon.git","master")
+                    clone("https://github.com/yinkaowolabi091-web/e-commerce-app-devops-project.git","master")
                 }
             }
         }
@@ -70,10 +70,7 @@ pipeline {
         stage('Security Scan with Trivy') {
             steps {
                 script {
-                    // Create directory for results
-                  
-                    trivy_scan()
-                    
+                   trivy_scan()
                 }
             }
         }
@@ -86,7 +83,7 @@ pipeline {
                             docker_push(
                                 imageName: env.DOCKER_IMAGE_NAME,
                                 imageTag: env.DOCKER_IMAGE_TAG,
-                                credentials: 'docker-hub-credentials'
+                                credentials: 'docker-credentials'
                             )
                         }
                     }
@@ -98,7 +95,7 @@ pipeline {
                             docker_push(
                                 imageName: env.DOCKER_MIGRATION_IMAGE_NAME,
                                 imageTag: env.DOCKER_IMAGE_TAG,
-                                credentials: 'docker-hub-credentials'
+                                credentials: 'docker-credentials'
                             )
                         }
                     }
@@ -106,7 +103,6 @@ pipeline {
             }
         }
         
-        // Add this new stage
         stage('Update Kubernetes Manifests') {
             steps {
                 script {
@@ -115,7 +111,7 @@ pipeline {
                         manifestsPath: 'kubernetes',
                         gitCredentials: 'github-credentials',
                         gitUserName: 'Jenkins CI',
-                        gitUserEmail: 'misc.lucky66@gmail.com'
+                        gitUserEmail: 'misc.yinkaowolabi091@gmail.com'
                     )
                 }
             }
